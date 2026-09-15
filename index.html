@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Padronizador de Comandos SQL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14171c;
+    --panel:#1b1f26;
+    --panel-2:#20252d;
+    --border:#2b313b;
+    --border-soft:#252a32;
+    --text:#e7e4dc;
+    --text-dim:#8d93a0;
+    --text-faint:#5b616d;
+    --amber:#d9a441;
+    --amber-dim:#7a6539;
+    --green:#7fa876;
+    --red:#c1666b;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:'JetBrains Mono',ui-monospace,monospace;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--amber-dim); color:var(--text);}
+  a{color:var(--amber);}
+
+  .wrap{
+    max-width:980px;
+    margin:0 auto;
+    padding:56px 24px 80px;
+  }
+
+  header{
+    border-bottom:1px solid var(--border);
+    padding-bottom:28px;
+    margin-bottom:36px;
+  }
+  header .kicker{
+    font-size:12px;
+    color:var(--text-faint);
+    letter-spacing:.02em;
+    margin-bottom:14px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-style:italic;
+    font-size:clamp(28px,4vw,40px);
+    line-height:1.15;
+    margin:0 0 14px;
+    color:var(--text);
+  }
+  header p{
+    font-size:13.5px;
+    color:var(--text-dim);
+    max-width:62ch;
+    margin:0;
+  }
+
+  section{margin-bottom:34px;}
+
+  .step-label{
+    font-size:11px;
+    color:var(--text-faint);
+    margin-bottom:10px;
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  .step-label .n{
+    color:var(--amber);
+    font-weight:600;
+  }
+
+  /* dialect tabs */
+  .dialects{
+    display:flex;
+    flex-wrap:wrap;
+    gap:2px;
+    border-bottom:1px solid var(--border);
+  }
+  .dialect-btn{
+    background:none;
+    border:none;
+    border-bottom:2px solid transparent;
+    color:var(--text-dim);
+    font-family:inherit;
+    font-size:13px;
+    padding:10px 14px 12px;
+    cursor:pointer;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .dialect-btn:hover{color:var(--text);}
+  .dialect-btn.active{
+    color:var(--amber);
+    border-bottom-color:var(--amber);
+  }
+  .dialect-note{
+    font-size:12px;
+    color:var(--text-faint);
+    margin-top:10px;
+  }
+
+  /* upload zone */
+  .dropzone{
+    border:1px dashed var(--border);
+    border-radius:var(--radius);
+    background:var(--panel);
+    padding:34px 24px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color:var(--amber-dim);
+    background:var(--panel-2);
+  }
+  .dropzone .main-txt{
+    font-size:13.5px;
+    color:var(--text);
+    margin-bottom:6px;
+  }
+  .dropzone .sub-txt{
+    font-size:12px;
+    color:var(--text-faint);
+  }
+  .dropzone .filename{
+    margin-top:14px;
+    display:inline-block;
+    font-size:12.5px;
+    color:var(--green);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:6px 10px;
+    background:var(--ink);
+  }
+  input[type=file]{display:none;}
+
+  .paste-toggle{
+    margin-top:12px;
+    font-size:12px;
+    color:var(--text-faint);
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .paste-toggle:hover{color:var(--text-dim);}
+  textarea.paste-area{
+    display:none;
+    width:100%;
+    margin-top:12px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    color:var(--text);
+    font-family:inherit;
+    font-size:12.5px;
+    padding:12px;
+    min-height:120px;
+    resize:vertical;
+  }
+  textarea.paste-area:focus{outline:1px solid var(--amber-dim); border-color:var(--amber-dim);}
+
+  .options{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    margin-top:16px;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .options input{margin-top:2px;}
+  .options label{cursor:pointer;}
+
+  .run-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-top:20px;
+  }
+  button.primary{
+    font-family:inherit;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+    background:var(--amber);
+    border:none;
+    border-radius:var(--radius);
+    padding:11px 20px;
+    cursor:pointer;
+    transition:opacity .15s ease;
+  }
+  button.primary:hover{opacity:.88;}
+  button.primary:disabled{
+    background:var(--border);
+    color:var(--text-faint);
+    cursor:not-allowed;
+  }
+  .run-status{
+    font-size:12px;
+    color:var(--text-faint);
+  }
+  .run-status.err{color:var(--red);}
+
+  /* output */
+  .rule-line{
+    font-size:11.5px;
+    color:var(--text-faint);
+    border-top:1px solid var(--border-soft);
+    padding-top:12px;
+    margin-top:6px;
+  }
+  .rule-line b{color:var(--text-dim); font-weight:500;}
+
+  .stats{
+    display:flex;
+    gap:22px;
+    margin:18px 0 14px;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .stats span b{color:var(--amber); font-weight:600;}
+
+  .panes{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1px;
+    background:var(--border);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  @media (max-width:760px){
+    .panes{grid-template-columns:1fr;}
+  }
+  .pane{background:var(--panel);}
+  .pane-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:9px 12px;
+    border-bottom:1px solid var(--border);
+    font-size:11.5px;
+    color:var(--text-faint);
+  }
+  .pane textarea{
+    width:100%;
+    height:360px;
+    background:var(--panel);
+    color:var(--text);
+    border:none;
+    font-family:inherit;
+    font-size:12.5px;
+    line-height:1.55;
+    padding:14px;
+    resize:vertical;
+  }
+  .pane textarea:focus{outline:none;}
+  .pane-actions button{
+    font-family:inherit;
+    font-size:11px;
+    color:var(--text-dim);
+    background:none;
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:4px 9px;
+    cursor:pointer;
+    margin-left:6px;
+  }
+  .pane-actions button:hover{color:var(--amber); border-color:var(--amber-dim);}
+
+  footer{
+    margin-top:44px;
+    padding-top:18px;
+    border-top:1px solid var(--border);
+    font-size:11.5px;
+    color:var(--text-faint);
+  }
+
+  .hidden{display:none !important;}
+
+  :focus-visible{outline:1px solid var(--amber); outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="kicker">ferramenta local · nenhum arquivo sai do navegador</div>
+    <h1>Padronizador de comandos SQL</h1>
+    <p>Envie um arquivo .sql ou .txt, escolha o banco de dados de origem e a ferramenta coloca todo comando e palavra-chave SQL em maiúsculo, mantendo o resto — nomes de tabela, colunas, aliases — em minúsculo.</p>
+  </header>
+
+  <section>
+    <div class="step-label"><span class="n">1</span> banco de dados de origem</div>
+    <div class="dialects" id="dialectTabs"></div>
+    <div class="dialect-note" id="dialectNote"></div>
+  </section>
+
+  <section>
+    <div class="step-label"><span class="n">2</span> arquivo</div>
+    <div class="dropzone" id="dropzone">
+      <div class="main-txt">arraste um arquivo .sql ou .txt aqui, ou clique para escolher</div>
+      <div class="sub-txt">o processamento acontece no seu navegador — nada é enviado a um servidor</div>
+      <div id="filenameTag"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".sql,.txt">
+    <button type="button" class="paste-toggle" id="pasteToggle">colar texto em vez de enviar um arquivo</button>
+    <textarea class="paste-area" id="pasteArea" placeholder="cole o conteúdo do script aqui"></textarea>
+
+    <div class="options">
+      <input type="checkbox" id="lowerStrings">
+      <label for="lowerStrings">converter também o texto dentro de aspas simples ('...') para minúsculo — desative se o script tiver dados sensíveis ao caso, como senhas ou nomes próprios</label>
+    </div>
+    <div class="options">
+      <input type="checkbox" id="lowerBrackets">
+      <label for="lowerBrackets">converter também o texto dentro de colchetes ([...]) para minúsculo — desative se o script tiver dados sensíveis ao caso, como senhas ou nomes próprios</label>
+    </div>
+
+    <div class="run-row">
+      <button class="primary" id="runBtn" disabled>padronizar arquivo</button>
+      <span class="run-status" id="runStatus"></span>
+    </div>
+  </section>
+
+  <section id="outputSection" class="hidden">
+    <div class="step-label"><span class="n">3</span> resultado</div>
+    <div class="rule-line">
+      <b>palavras-chave SQL</b> → MAIÚSCULO &nbsp;·&nbsp; <b>identificadores e demais termos</b> → minúsculo &nbsp;·&nbsp; <b>comentários, textos entre aspas e nomes entre aspas / colchetes / crases</b> → mantidos como no original
+    </div>
+    <div class="stats" id="statsRow"></div>
+    <div class="panes">
+      <div class="pane">
+        <div class="pane-head">
+          <span>original</span>
+        </div>
+        <textarea id="originalOut" readonly spellcheck="false"></textarea>
+      </div>
+      <div class="pane">
+        <div class="pane-head">
+          <span>padronizado</span>
+          <span class="pane-actions">
+            <button type="button" id="copyBtn">copiar</button>
+            <button type="button" id="downloadBtn">baixar</button>
+          </span>
+        </div>
+        <textarea id="resultOut" readonly spellcheck="false"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Comandos são reconhecidos por uma lista de palavras-chave própria de cada banco (comandos, cláusulas, tipos de dado e funções nativas mais comuns). Scripts muito específicos podem conter termos fora dessa lista — revise o resultado antes de usar em produção.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+
+  /* ---------- palavras-chave por dialeto ---------- */
+
+  const COMMON = [
+    "select","insert","into","update","delete","from","where","set","values","merge","using","output",
+    "create","alter","drop","table","view","index","trigger","procedure","function","database","schema",
+    "sequence","synonym","type","column","constraint","primary","key","foreign","references","unique",
+    "check","default","not","null","identity",
+    "join","inner","left","right","full","outer","cross","on","group","by","having","order","asc","desc",
+    "distinct","top","limit","offset","fetch","next","rows","row","only","union","all","intersect","except",
+    "with","as","case","when","then","else","end","exists","in","between","like","is","and","or","any","some",
+    "over","partition","row_number","rank","dense_rank","ntile","lead","lag","first_value","last_value","nth_value",
+    "begin","commit","rollback","transaction","savepoint","tran",
+    "grant","revoke","deny",
+    "declare","cursor","open","close","deallocate","exec","execute","execute as","return","returns","if","while","break",
+    "continue","goto","print","try","catch","end try","end catch",
+    "int","integer","bigint","smallint","tinyint","decimal","numeric","float","real","money","char",
+    "varchar","nvarchar","nchar","text","ntext","date","datetime","datetime2","smalldatetime","time",
+    "timestamp","bit","boolean","bool","binary","varbinary","image","uniqueidentifier","xml","json","blob",
+    "clob","number","varchar2","nvarchar2","raw","long",
+    "count","sum","avg","min","max","cast","convert","coalesce","isnull","nullif","substring","trim",
+    "ltrim","rtrim","upper","lower","replace","concat","len","length","round","floor","ceiling","ceil","abs",
+    "power","sqrt","current_timestamp","current_date","current_time",
+    "year","month","day","quarter","weekday","dateadd","datediff","datepart","datename","extract",
+    "format","str","space","ascii","char","unicode","soundex","checksum","rand","sign","mod","exp","log",
+    "log10","sin","cos","tan","pi","degrees","radians","stdev","stdevp","var","varp","lpad","rpad","instr",
+    "reverse","replicate","left","right"
+  ];
+
+  const EXTRA = {
+    sqlserver: [
+      "go","proc","nolock","readpast","holdlock","tablock","apply","newid","iif","try_cast","try_convert",
+      "stuff","charindex","patindex","getdate","sysdatetime","sysdatetimeoffset","eomonth","datefromparts",
+      "sp_executesql","openjson","raiserror","throw","identity_insert","nvarchar","varchar","uniqueidentifier",
+      "output","for","xml","json","auto","path","object_id","col_length","isnumeric","string_agg","string_split"
+    ],
+    mysql: [
+      "limit","ignore","replace","delayed","low_priority","high_priority","sql_calc_found_rows",
+      "straight_join","engine","auto_increment","unsigned","zerofill","show","describe","explain","use",
+      "lock","unlock","tables","group_concat","ifnull","date_format","str_to_date","now","curdate","curtime",
+      "unix_timestamp","charset","collate"
+    ],
+    postgres: [
+      "returning","ilike","similar","array","serial","bigserial","jsonb","uuid","generate_series",
+      "regexp_matches","to_char","to_date","to_timestamp","now","current_schema","lateral","tablesample",
+      "vacuum","analyze","explain","language","plpgsql"
+    ],
+    oracle: [
+      "dual","rownum","rowid","connect","prior","start","nocycle","minus","sysdate","systimestamp","to_char",
+      "to_date","to_number","nvl","nvl2","decode","listagg","pragma","exception","raise","loop","elsif",
+      "varchar2","number","pls_integer","package","body","autonomous_transaction","bulk","collect"
+    ],
+    ansi: []
+  };
+
+  const DIALECTS = [
+    { id:"sqlserver", label:"SQL Server",  hashComment:false, bracket:true,  backtick:false, note:"Reconhece colchetes [ ] como identificador, comentários -- e /* */, e blocos GO." },
+    { id:"mysql",     label:"MySQL",       hashComment:true,  bracket:false, backtick:true,  note:"Reconhece crases ` ` como identificador e # como comentário, além de -- e /* */." },
+    { id:"postgres",  label:"PostgreSQL",  hashComment:false, bracket:false, backtick:false, note:"Identificadores entre aspas duplas são preservados exatamente como escritos (case-sensitive)." },
+    { id:"oracle",    label:"Oracle",      hashComment:false, bracket:false, backtick:false, note:"Inclui palavras-chave de PL/SQL como DECODE, NVL, CONNECT BY e LISTAGG." },
+    { id:"ansi",      label:"ANSI / genérico", hashComment:false, bracket:false, backtick:false, note:"Usa apenas o conjunto comum de comandos SQL, sem extensões de um banco específico." }
+  ];
+
+  function buildKeywordSet(dialectId){
+    const set = new Set(COMMON.map(w=>w.toUpperCase()));
+    (EXTRA[dialectId]||[]).forEach(w=>set.add(w.toUpperCase()));
+    return set;
+  }
+
+  /* ---------- estado ---------- */
+
+  let currentDialect = "sqlserver";
+  let sourceText = "";
+  let sourceFilename = "script";
+
+  /* ---------- tabs de dialeto ---------- */
+
+  const tabsEl = document.getElementById("dialectTabs");
+  const noteEl = document.getElementById("dialectNote");
+
+  DIALECTS.forEach(d=>{
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dialect-btn" + (d.id===currentDialect ? " active" : "");
+    btn.textContent = d.label;
+    btn.addEventListener("click", ()=>{
+      currentDialect = d.id;
+      document.querySelectorAll(".dialect-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      updateNote();
+    });
+    tabsEl.appendChild(btn);
+  });
+
+  function updateNote(){
+    const d = DIALECTS.find(x=>x.id===currentDialect);
+    noteEl.textContent = d.note;
+  }
+  updateNote();
+
+  /* ---------- entrada: arquivo ou texto colado ---------- */
+
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("fileInput");
+  const filenameTag = document.getElementById("filenameTag");
+  const runBtn = document.getElementById("runBtn");
+  const runStatus = document.getElementById("runStatus");
+  const pasteToggle = document.getElementById("pasteToggle");
+  const pasteArea = document.getElementById("pasteArea");
+
+  dropzone.addEventListener("click", ()=>fileInput.click());
+  dropzone.addEventListener("dragover", e=>{ e.preventDefault(); dropzone.classList.add("drag"); });
+  dropzone.addEventListener("dragleave", ()=> dropzone.classList.remove("drag"));
+  dropzone.addEventListener("drop", e=>{
+    e.preventDefault();
+    dropzone.classList.remove("drag");
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener("change", e=>{
+    if(e.target.files && e.target.files[0]) loadFile(e.target.files[0]);
+  });
+
+  function loadFile(file){
+    const okExt = /\.(sql|txt)$/i.test(file.name);
+    if(!okExt){
+      runStatus.textContent = "use um arquivo .sql ou .txt";
+      runStatus.classList.add("err");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      sourceText = reader.result;
+      sourceFilename = file.name.replace(/\.(sql|txt)$/i,"");
+      filenameTag.innerHTML = '<span class="filename">'+file.name+' · '+ (file.size/1024).toFixed(1) +' kb</span>';
+      pasteArea.value = "";
+      pasteArea.style.display = "none";
+      runStatus.textContent = "";
+      runStatus.classList.remove("err");
+      runBtn.disabled = false;
+    };
+    reader.readAsText(file, "UTF-8");
+  }
+
+  pasteToggle.addEventListener("click", ()=>{
+    const showing = pasteArea.style.display === "block";
+    pasteArea.style.display = showing ? "none" : "block";
+    pasteToggle.textContent = showing ? "colar texto em vez de enviar um arquivo" : "usar o arquivo enviado acima em vez do texto colado";
+  });
+  pasteArea.addEventListener("input", ()=>{
+    if(pasteArea.value.trim().length>0){
+      sourceText = pasteArea.value;
+      sourceFilename = "script";
+      filenameTag.innerHTML = "";
+      runBtn.disabled = false;
+      runStatus.textContent = "";
+      runStatus.classList.remove("err");
+    }
+  });
+
+  /* ---------- tokenizador ---------- */
+
+  function processSQL(text, dialectId, lowerStrings, lowerBrackets){
+    const d = DIALECTS.find(x=>x.id===dialectId);
+    const keywords = buildKeywordSet(dialectId);
+
+    const parts = [];
+    parts.push("(?<linecomment>--[^\\n]*)");
+    if(d.hashComment) parts.push("(?<hashcomment>#[^\\n]*)");
+    parts.push("(?<blockcomment>/\\*[\\s\\S]*?\\*/)");
+    parts.push("(?<squote>'(?:[^'\\\\]|\\\\.|'')*')");
+    parts.push("(?<dquote>\"(?:[^\"\\\\]|\\\\.|\"\")*\")");
+    if(d.bracket) parts.push("(?<bracket>\\[[^\\]]*\\])");
+    if(d.backtick) parts.push("(?<backtick>`[^`]*`)");
+    parts.push("(?<word>[A-Za-z_][A-Za-z0-9_$#@]*)");
+
+    const re = new RegExp(parts.join("|"), "g");
+
+    let result = "";
+    let lastIndex = 0;
+    let m;
+    let keywordCount = 0;
+    let wordCount = 0;
+
+    while((m = re.exec(text)) !== null){
+      result += text.slice(lastIndex, m.index);
+
+      if(m.groups.word !== undefined){
+        const w = m.groups.word;
+        const upper = w.toUpperCase();
+        wordCount++;
+        if(keywords.has(upper)){
+          result += upper;
+          keywordCount++;
+        } else {
+          result += w.toLowerCase();
+        }
+      } else if(m.groups.squote !== undefined && lowerStrings){
+        result += m.groups.squote.toLowerCase();
+      } else if(m.groups.bracket !== undefined && lowerBrackets){
+        result += m.groups.bracket.toLowerCase();
+      } else {
+        result += m[0];
+      }
+
+      lastIndex = re.lastIndex;
+      if(m.index === re.lastIndex) re.lastIndex++;
+    }
+    result += text.slice(lastIndex);
+
+    return { result, keywordCount, wordCount };
+  }
+
+  /* ---------- execução ---------- */
+
+  const outputSection = document.getElementById("outputSection");
+  const statsRow = document.getElementById("statsRow");
+  const originalOut = document.getElementById("originalOut");
+  const resultOut = document.getElementById("resultOut");
+  const copyBtn = document.getElementById("copyBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const lowerStringsChk = document.getElementById("lowerStrings");
+  const lowerBracketsChk = document.getElementById("lowerBrackets");
+
+  let lastResultText = "";
+
+  runBtn.addEventListener("click", ()=>{
+    const text = pasteArea.style.display === "block" && pasteArea.value.trim().length>0
+      ? pasteArea.value
+      : sourceText;
+
+    if(!text || !text.trim()){
+      runStatus.textContent = "envie um arquivo ou cole um texto primeiro";
+      runStatus.classList.add("err");
+      return;
+    }
+
+    const { result, keywordCount, wordCount } = processSQL(text, currentDialect, lowerStringsChk.checked, lowerBracketsChk.checked);
+    lastResultText = result;
+
+    originalOut.value = text;
+    resultOut.value = result;
+    statsRow.innerHTML =
+      '<span><b>'+keywordCount+'</b> comandos/palavras-chave padronizados</span>' +
+      '<span><b>'+ (wordCount - keywordCount) +'</b> identificadores em minúsculo</span>' +
+      '<span><b>'+ DIALECTS.find(x=>x.id===currentDialect).label +'</b> como dialeto</span>';
+
+    outputSection.classList.remove("hidden");
+    outputSection.scrollIntoView({behavior:"smooth", block:"start"});
+    runStatus.textContent = "";
+    runStatus.classList.remove("err");
+  });
+
+  copyBtn.addEventListener("click", ()=>{
+    navigator.clipboard.writeText(lastResultText).then(()=>{
+      const old = copyBtn.textContent;
+      copyBtn.textContent = "copiado";
+      setTimeout(()=>copyBtn.textContent = old, 1200);
+    });
+  });
+
+  downloadBtn.addEventListener("click", ()=>{
+    const blob = new Blob([lastResultText], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = sourceFilename + ".padronizado.sql";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+})();
+</script>
+
+</body>
+</html>
