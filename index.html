@@ -322,6 +322,7 @@
     <input type="file" id="fileInput" accept=".sql,.txt">
     <button type="button" class="paste-toggle" id="pasteToggle">colar texto em vez de enviar um arquivo</button>
     <textarea class="paste-area" id="pasteArea" placeholder="cole o conteúdo do script aqui"></textarea>
+    <button type="button" class="paste-toggle hidden" id="clearPasteBtn">limpar texto colado</button>
 
     <div class="options">
       <input type="checkbox" id="lowerStrings">
@@ -481,6 +482,7 @@
   const runStatus = document.getElementById("runStatus");
   const pasteToggle = document.getElementById("pasteToggle");
   const pasteArea = document.getElementById("pasteArea");
+  const clearPasteBtn = document.getElementById("clearPasteBtn");
 
   dropzone.addEventListener("click", ()=>fileInput.click());
   dropzone.addEventListener("dragover", e=>{ e.preventDefault(); dropzone.classList.add("drag"); });
@@ -518,6 +520,7 @@
   pasteToggle.addEventListener("click", ()=>{
     const showing = pasteArea.style.display === "block";
     pasteArea.style.display = showing ? "none" : "block";
+    clearPasteBtn.classList.toggle("hidden", showing);
     pasteToggle.textContent = showing ? "colar texto em vez de enviar um arquivo" : "usar o arquivo enviado acima em vez do texto colado";
   });
   pasteArea.addEventListener("input", ()=>{
@@ -528,7 +531,17 @@
       runBtn.disabled = false;
       runStatus.textContent = "";
       runStatus.classList.remove("err");
+    } else {
+      runBtn.disabled = true;
     }
+  });
+  clearPasteBtn.addEventListener("click", ()=>{
+    pasteArea.value = "";
+    sourceText = "";
+    runBtn.disabled = true;
+    runStatus.textContent = "";
+    runStatus.classList.remove("err");
+    pasteArea.focus();
   });
 
   /* ---------- tokenizador ---------- */
